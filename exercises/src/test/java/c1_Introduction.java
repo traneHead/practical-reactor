@@ -1,15 +1,17 @@
-import org.junit.jupiter.api.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static java.util.Collections.emptyList;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * This chapter will introduce you to the basics of Reactor.
@@ -41,7 +43,7 @@ public class c1_Introduction extends IntroductionBase {
     public void hello_world() {
         Mono<String> serviceResult = hello_world_service();
 
-        String result = null; //todo: change this line only
+        String result = hello_world_service().block();
 
         assertEquals("Hello World!", result);
     }
@@ -55,7 +57,7 @@ public class c1_Introduction extends IntroductionBase {
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             Mono<String> serviceResult = unresponsiveService();
 
-            String result = null; //todo: change this line only
+            String result = serviceResult.block(Duration.of(1, ChronoUnit.SECONDS));
         });
 
         String expectedMessage = "Timeout on blocking read for 1";
@@ -72,7 +74,7 @@ public class c1_Introduction extends IntroductionBase {
     public void empty_service() {
         Mono<String> serviceResult = emptyService();
 
-        Optional<String> optionalServiceResult = null; //todo: change this line only
+        Optional<String> optionalServiceResult = serviceResult.blockOptional();
 
         assertTrue(optionalServiceResult.isEmpty());
         assertTrue(emptyServiceIsCalled.get());
@@ -89,7 +91,7 @@ public class c1_Introduction extends IntroductionBase {
     public void multi_result_service() {
         Flux<String> serviceResult = multiResultService();
 
-        String result = serviceResult.toString(); //todo: change this line only
+        String result = serviceResult.blockFirst();
 
         assertEquals("valid result", result);
     }
@@ -103,9 +105,12 @@ public class c1_Introduction extends IntroductionBase {
     public void fortune_top_five() {
         Flux<String> serviceResult = fortuneTop5();
 
-        List<String> results = emptyList(); //todo: change this line only
+        List<String> results = serviceResult.collectList().block();
 
-        assertEquals(Arrays.asList("Walmart", "Amazon", "Apple", "CVS Health", "UnitedHealth Group"), results);
+        assertEquals(
+            Arrays.asList("Walmart", "Amazon", "Apple", "CVS Health", "UnitedHealth Group"),
+            results
+        );
         assertTrue(fortuneTop5ServiceIsCalled.get());
     }
 
@@ -127,13 +132,15 @@ public class c1_Introduction extends IntroductionBase {
         Flux<String> serviceResult = fortuneTop5();
 
         serviceResult
-                .doOnNext(companyList::add)
-        //todo: add an operator here, don't use any blocking operator!
-        ;
+            .doOnNext(companyList::add)
+            .subscribe();
 
         Thread.sleep(1000); //bonus: can you explain why this line is needed?
 
-        assertEquals(Arrays.asList("Walmart", "Amazon", "Apple", "CVS Health", "UnitedHealth Group"), companyList);
+        assertEquals(
+            Arrays.asList("Walmart", "Amazon", "Apple", "CVS Health", "UnitedHealth Group"),
+            companyList
+        );
     }
 
     /***
@@ -152,12 +159,18 @@ public class c1_Introduction extends IntroductionBase {
         CopyOnWriteArrayList<String> companyList = new CopyOnWriteArrayList<>();
 
         fortuneTop5()
-        //todo: change this line only
-        ;
+            .subscribe(
+                companyList::add,
+                err -> {},
+                () -> serviceCallCompleted.set(true)
+            );
 
         Thread.sleep(1000);
 
         assertTrue(serviceCallCompleted.get());
-        assertEquals(Arrays.asList("Walmart", "Amazon", "Apple", "CVS Health", "UnitedHealth Group"), companyList);
+        assertEquals(
+            Arrays.asList("Walmart", "Amazon", "Apple", "CVS Health", "UnitedHealth Group"),
+            companyList
+        );
     }
 }
