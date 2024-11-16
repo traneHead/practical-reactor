@@ -16,7 +16,7 @@
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <reactor.version>3.6.10</reactor.version>
+        <reactor.version>3.7.0</reactor.version>
         <blockhound.version>1.0.9.RELEASE</blockhound.version>
     </properties>
 
